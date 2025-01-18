@@ -64,8 +64,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
-      <h1 className="text-4xl font-bold text-center mb-8">📚 Book Management</h1>
-
+      <h1 className="text-4xl font-bold text-center mb-8"> Active Book Store</h1>
+      <h3>self created using CRUD method</h3>
       <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mb-8">
         {books.map((book) => (
           <div key={book.id} className="bg-white rounded-lg shadow-md p-6">
