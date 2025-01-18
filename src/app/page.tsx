@@ -1,101 +1,154 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Image from "next/image";
 
-export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+interface Book {
+  id: number;
+  title: string;
+  author: string;
+  image: string;
+}
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+export default function Home() {
+  const [books, setBooks] = useState<Book[]>([]);
+  const [title, setTitle] = useState("");
+  const [author, setAuthor] = useState("");
+  const [image, setImage] = useState("");
+  const [editingBook, setEditingBook] = useState<Book | null>(null);
+
+  useEffect(() => {
+    fetchBooks();
+  }, []);
+
+  const fetchBooks = async () => {
+    const response = await fetch("/api/books");
+    const data = await response.json();
+    setBooks(data);
+  };
+
+  const handleAddOrUpdateBook = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const method = editingBook ? "PUT" : "POST";
+    const endpoint = "/api/books";
+    const payload = editingBook
+      ? { id: editingBook.id, title, author, image }
+      : { title, author, image };
+
+    const response = await fetch(endpoint, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (response.ok) {
+      setTitle("");
+      setAuthor("");
+      setImage("");
+      setEditingBook(null);
+      fetchBooks();
+    }
+  };
+
+  const handleDeleteBook = async (id: number) => {
+    const response = await fetch("/api/books", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+
+    if (response.ok) {
+      fetchBooks();
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-8">
+      <h1 className="text-4xl font-bold text-center mb-8">📚 Book Management</h1>
+
+      <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mb-8">
+        {books.map((book) => (
+          <div key={book.id} className="bg-white rounded-lg shadow-md p-6">
             <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+              src={book.image}
+              alt={book.title}
+              width={200}
+              height={300}
+              className="w-full h-64 object-cover rounded mb-4"
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+            <h3 className="text-lg font-bold">{book.title}</h3>
+            <p className="text-sm text-gray-600">Author: {book.author}</p>
+            <div className="mt-4 flex justify-between">
+              <button
+                onClick={() => {
+                  setEditingBook(book);
+                  setTitle(book.title);
+                  setAuthor(book.author);
+                  setImage(book.image);
+                }}
+                className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+              >
+                Edit
+              </button>
+              <button
+                onClick={() => handleDeleteBook(book.id)}
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="max-w-lg mx-auto bg-white rounded-lg shadow-lg p-6">
+        <h2 className="text-2xl font-bold text-center mb-4">
+          {editingBook ? "Edit Book" : "Add New Book"}
+        </h2>
+        <form onSubmit={handleAddOrUpdateBook} className="space-y-4">
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Book Title"
+            required
+            className="w-full p-2 border rounded"
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
+          <input
+            type="text"
+            value={author}
+            onChange={(e) => setAuthor(e.target.value)}
+            placeholder="Author Name"
+            required
+            className="w-full p-2 border rounded"
           />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
+          <input
+            type="text"
+            value={image}
+            onChange={(e) => setImage(e.target.value)}
+            placeholder="Image URL"
+            required
+            className="w-full p-2 border rounded"
           />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          <div className="flex justify-between">
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              {editingBook ? "Update" : "Add"} Book
+            </button>
+            {editingBook && (
+              <button
+                type="button"
+                onClick={() => setEditingBook(null)}
+                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
